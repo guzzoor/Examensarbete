@@ -1,0 +1,9 @@
+# ssh forwarding
+
+# Will forward everything from port 22 on 192.168.0.104 to localport 5902 via 88.129.80.84
+ ssh -N -L 5902:192.168.0.104:22 -p 3022 clarastockhaus@88.129.80.84
+
+
+ # Sites
+ # To use with windows later
+ https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/mstsc
