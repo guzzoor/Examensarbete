@@ -80,7 +80,7 @@ class client_thread:
                 self.handle_ssh()
             
             elif msg == 'scp':
-                print(f'scp requested by client %s' % (self.address))
+                print('scp requested by client %s' % (self.address))
                 self.handle_scp()
 
             elif msg == 'rdp':
@@ -148,7 +148,7 @@ class Server:
     def start_server(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.ip, self.port))
-            print('Server started running. Listening on port %s' % (self.adress))
+            print('Server started running. Listening on port %s' % (self.port))
             while True:
                 s.listen()
                 self.conn, self.addr = s.accept()
