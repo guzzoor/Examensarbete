@@ -6,6 +6,7 @@ import subprocess
 import signal
 import json
 import sys
+import time
 
 from server import host
 try:
@@ -73,36 +74,45 @@ class client:
                     self.handle_show(message_to_server)
 
                 if message_to_server == 'rdp':
-                    self.handle_show('show')
-
-                    choice = input('Chose one of the following available work stations: ')
-                    ws = int(choice) - 1
-                    choice = self.hosts[ws]
-                    msg_to_server = {
-                        'command' : 'rdp',
-                        'choice' : choice
-                    }
-
-                    msg_to_server = pickle.dumps(msg_to_server, -1)
-                    self.s.sendall(msg_to_server)
-                    data = self.s.recv(1024)
-                    print_data = data.decode()
-                    p_rdp = subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
-                    os.system('open windows.rdp')
-                    print('You can now use rdp')
+                   self.handle_rdp() 
                 
                 if message_to_server == 'q_rdp':
-                    self.s.sendall(str.encode(message_to_server))
-                    data = self.s.recv(1024)
-                    print_data = data.decode() 
-                    os.killpg(os.getpgid(p_rdp.pid), signal.SIGTERM)  # Send the signal to all the process groups
+                    self.handle_quit_rdp()
 
                 if message_to_server == 'quit':
-                    self.s.sendall(str.encode(message_to_server))
-                    is_running = False
-                    self.s.sendall(str.encode('quit'))
-                    print('You terminated the connection.')
+                    self.quit()
     
+    def handle_rdp(self):
+        self.handle_show('show')
+        choice = input('Chose one of the following available work stations: ')
+        ws = int(choice) - 1
+        choice = self.hosts[ws]
+        msg_to_server = {
+            'command' : 'rdp',
+            'choice' : choice
+        }
+
+        msg_to_server = pickle.dumps(msg_to_server, -1)
+        self.s.sendall(msg_to_server)
+        data = self.s.recv(1024)
+        print_data = data.decode()
+        self.p_rdp = subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
+        
+        # Will not have the time to create the tunnel else
+        time.sleep(1)
+        os.system('open windows.rdp')
+        print('You can now use rdp')
+
+    def handle_quit_rdp(self):
+        msg = {
+            'command' : 'q_rdp'
+            }
+        self.s.sendall(pickle.dumps(msg, -1))
+        data = self.s.recv(1024)
+        print_data = data.decode() 
+        os.killpg(os.getpgid(self.p_rdp.pid), signal.SIGTERM)  # Send the signal to all the process groups
+
+
     def handle_show(self, msg_to_server):
         for i, h in enumerate(self.hosts, start = 1):
             print('{}. {}'.format(i, h.to_string()))
@@ -128,6 +138,17 @@ class client:
     def update_info(self):
         pass
 
+
+    def quit(self):
+
+        msg = {
+            'command' : 'quit'
+        }
+        self.s.sendall(pickle.dumps(msg), -1)
+        msg = self.s.recv(1024)
+        print(msg.decode())
+        is_running = False
+        print('You terminated the connection.')
 
     def main(self):
         if(self.connect() and self.login()):

@@ -75,6 +75,7 @@ class client_thread:
 
             elif command == 'quit':
                 print('Client {} chose to terminate the connection.'.format(self.address))
+                self.connection.sendall(str.encode('Server terminated your connection'))
                 is_running = False
 
             elif command == 'collect':
@@ -153,8 +154,6 @@ class Server:
 
 
 if __name__ == '__main__':
-    print(len(sys.argv))
-    print(sys.argv[0])
     if len(sys.argv) == 3:
         ip = sys.argv[1]
         port = sys.argv[2]
