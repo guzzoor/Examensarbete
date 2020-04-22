@@ -63,32 +63,32 @@ class client_thread:
             msg = data.decode()
 
             if msg == 'login':
-                print('login requested by client %s' % (self.address))
+                print('login requested by client {}'.format(self.address))
                 self.handle_login()
 
             elif msg == 'quit':
-                print('Client %s chose to terminate the connection.' % (self.address))
+                print('Client {} chose to terminate the connection.'.format(self.address))
                 is_running = False
 
             elif msg == 'show':
-                print('show requested by client %s' % (self.address))
+                print('show requested by client {}'.format(self.address))
                 msg = pickle.dumps(self.hosts, -1)
                 self.connection.sendall(msg)
 
             elif msg == 'ssh':
-                print('ssh requested by client %s' % (self.address))
+                print('ssh requested by client {}'.format(self.address))
                 self.handle_ssh()
             
             elif msg == 'scp':
-                print('scp requested by client %s' % (self.address))
+                print('scp requested by client {}'.format(self.address))
                 self.handle_scp()
 
             elif msg == 'rdp':
-                print('rdp requested by client %s' % (self.address))
+                print('rdp requested by client {}'.format(self.address))
                 self.handle_rdp()
 
             elif msg == 'q_rdp':
-                print('quit rdp requested by client %s' % (self.address))
+                print('quit rdp requested by client {}'.format(self.address))
                 self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
 
     def handle_login(self):
@@ -101,9 +101,9 @@ class client_thread:
     ## Returns available ssh hosts as a string 
     #
     def print_msg_ssh_hosts(self, start_msg):
-        msg = '%s\n' % (start_msg)
+        msg = '{}\n'.format(start_msg)
         for h, i in enumerate(self.ssh_hosts, start = 1):
-            msg = '%s %d. %s\n' % (msg, i, h)
+            msg = '{} {}. {}\n'.format(msg, i, h)
         return msg
 
     #
@@ -152,7 +152,7 @@ class Server:
             while True:
                 s.listen()
                 self.conn, self.addr = s.accept()
-                print('Accepted connection from %s' % (self.addr))
+                print('Accepted connection from {}'.format(self.addr))
                 self.conn.sendall(str.encode('connected'))
                 t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
                 self.clients.append(t)
