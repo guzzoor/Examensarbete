@@ -21,6 +21,8 @@ class client:
     is_login = False
     s = None
 
+    work_stations = []
+
     def connect(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
         self.s.connect((HOST, PORT))
@@ -65,18 +67,15 @@ class client:
                 self.s.sendall(str.encode(message_to_server))
 
                 if message_to_server == 'show':
-                    self.s.sendall(str.encode(message_to_server))
-                    data = self.s.recv(4096)
-                    data = pickle.loads(data)
-                    for h in data:
-                        print(h.to_string())
-                    print()
+                    self.handle_show(message_to_server)
 
                 if message_to_server == 'rdp':
+                    self.handle_show('show')
                     self.s.sendall(str.encode(message_to_server))
                     data = self.s.recv(1024)
                     print_data = data.decode()
                     p_rdp = subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
+                    os.system('open windows.rdp')
                     print('You can now use rdp')
                 
                 if message_to_server == 'q_rdp':
@@ -85,29 +84,39 @@ class client:
                     print_data = data.decode() 
                     os.killpg(os.getpgid(p_rdp.pid), signal.SIGTERM)  # Send the signal to all the process groups
 
-                if message_to_server == 'ssh':
-                    self.s.sendall(str.encode(message_to_server))
-                    data = self.s.recv(1024)
-                    print_data = data.decode()
-                    ssh_input = input('Enter ssh-command: ')
-                    #p_ssh = subprocess.Popen('ssh -N -L 5904:192.168.0.104:22 -p 3022 clarastockhaus@88.129.80.84', stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
-                    subprocess.run(ssh_input, shell=True)
-
-                if message_to_server == 'q_ssh': 
-                    self.s.sendall(str.encode(message_to_server))
-                    data = self.s.recv(1024)
-                    print_data = data.decode()
-                    os.killpg(os.getpgid(p_ssh.pid), signal.SIGTERM)  # Send the signal to all the process groups
-
                 if message_to_server == 'quit':
                     self.s.sendall(str.encode(message_to_server))
                     is_running = False
                     self.s.sendall(str.encode('quit'))
                     print('You terminated the connection.')
+    
+    def handle_show(self, msg_to_server):
+        self.s.sendall(str.encode(msg_to_server))
+        data = self.s.recv(4096)
+        data = pickle.loads(data)
+        for h in data:
+            print(h.to_string())
+        print()
+
+    #
+    ## On start this will collect all relevant info. Like workstations in the system and the current user log.
+    #
+    def collect_info(self):
+        self.s.sendall('collect')
+        msg = pickle.loads(self.s.recv(4094))
+        print(msg)
+
+    #
+    ## Everyone something is updated the server will send a message to all client 
+    ## so that they can update their info
+    def update_info(self):
+        pass
+
 
     def main(self):
         if(self.connect() and self.login()):
             print('You are now connected and logged in to the system.\n')
+            self.collect_info()
             self.client_loop()
         else:
             print('Could not connect and login.')

@@ -70,18 +70,13 @@ class client_thread:
                 print('Client {} chose to terminate the connection.'.format(self.address))
                 is_running = False
 
-            elif msg == 'show':
-                print('show requested by client {}'.format(self.address))
-                msg = pickle.dumps(self.hosts, -1)
-                self.connection.sendall(msg)
-
-            elif msg == 'ssh':
-                print('ssh requested by client {}'.format(self.address))
-                self.handle_ssh()
-            
-            elif msg == 'scp':
-                print('scp requested by client {}'.format(self.address))
-                self.handle_scp()
+            elif msg == 'collect':
+                print('collect requested by client {}'.format(self.address))
+                msg = {
+                    'hosts' : self.hosts,
+                    'loginfo' : 'Lorem Ipsum'
+                }
+                self.connection.sendall(pickle.dumps(msg, -1))
 
             elif msg == 'rdp':
                 print('rdp requested by client {}'.format(self.address))
@@ -112,14 +107,6 @@ class client_thread:
     def handle_ssh(self):
         print('Client requested ssh-service')
         self.connection.sendall(str.encode('ssh -N -L 5905:192.168.0.104:22 -p 3022 clarastockhaus@88.129.80.84'))
-
-
-    #
-    ## A method for transfering files between computers
-    #
-    def handle_scp(self):
-        pass
-
 
     def handle_rdp(self):
         print('Client requested rdp-service')
