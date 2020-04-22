@@ -4,6 +4,8 @@ import socket
 import threading
 import sqlite3
 from datetime import datetime
+import json
+import sys
 
 try:
     import cPickle as pickle
@@ -59,37 +61,42 @@ class client_thread:
     def running(self):
         is_running = True
         while is_running:
-            data = self.connection.recv(1024)
-            msg = data.decode()
 
-            if msg == 'login':
+            data = self.connection.recv(4096)
+            msg = pickle.loads(data)
+
+            command = msg.get('command')
+
+            print(command)
+
+            if command == 'login':
                 print('login requested by client {}'.format(self.address))
-                self.handle_login()
+                self.handle_login(msg.get('un'), msg.get('pw'))
 
-            elif msg == 'quit':
+            elif command == 'quit':
                 print('Client {} chose to terminate the connection.'.format(self.address))
                 is_running = False
 
-            elif msg == 'collect':
+            elif command == 'collect':
                 print('collect requested by client {}'.format(self.address))
                 msg = {
                     'hosts' : self.hosts,
                     'loginfo' : 'Lorem Ipsum'
                 }
+
                 self.connection.sendall(pickle.dumps(msg, -1))
 
-            elif msg == 'rdp':
+            elif command == 'rdp':
                 print('rdp requested by client {}'.format(self.address))
-                self.handle_rdp()
+                self.handle_rdp(msg.get('choice'))
 
-            elif msg == 'q_rdp':
+            elif command == 'q_rdp':
                 print('quit rdp requested by client {}'.format(self.address))
                 self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
 
-    def handle_login(self):
-        data = self.connection.recv(1024)
-        dec_msg = pickle.loads(data)
-        if dec_msg.get('un') == 'j' and dec_msg.get('pw') == '1':
+    def handle_login(self, un, pw):
+        
+        if un == 'j' and pw == '1':
             self.connection.sendall(str.encode('auth'))
 
     #
@@ -108,9 +115,9 @@ class client_thread:
         print('Client requested ssh-service')
         self.connection.sendall(str.encode('ssh -N -L 5905:192.168.0.104:22 -p 3022 clarastockhaus@88.129.80.84'))
 
-    def handle_rdp(self):
+    def handle_rdp(self, host):
         print('Client requested rdp-service')
-        self.connection.sendall(str.encode('ssh -N -L 5901:192.168.0.114:3389 -p 2222 pi@88.129.80.84'))
+        self.connection.sendall(str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip)))
 
 
 #
@@ -140,12 +147,18 @@ class Server:
                 s.listen()
                 self.conn, self.addr = s.accept()
                 print('Accepted connection from {}'.format(self.addr))
-                self.conn.sendall(str.encode('connected'))
                 t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
                 self.clients.append(t)
                 t.start()
 
 
 if __name__ == '__main__':
-    server = Server('192.168.0.104', 65432)
-    server.start_server()
+    print(len(sys.argv))
+    print(sys.argv[0])
+    if len(sys.argv) == 3:
+        ip = sys.argv[1]
+        port = sys.argv[2]
+        server = Server(ip, (int(port)))
+        server.start_server()
+    else:
+        print('Provide ip and port number')
