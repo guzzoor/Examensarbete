@@ -30,19 +30,19 @@ class ssh:
                 self.ssh = paramiko.SSHClient()
                 self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 self.ssh.connect(self.host, port = self.port, username = self.username, password = self.password)
-                print(f'Connected to {self.host}')
+                print('Connected to %s' & (self.host))
                 break
             except paramiko.AuthenticationException:
-                print(f'Authentication failed when connecting to {self.host}')
+                print('Authentication failed when connecting to %s' % (self.host))
                 sys.exit(1)
             except:
-                print (f'Could not SSH to %s, waiting for it to start {self.host}')
+                print ('Could not SSH to %s, waiting for it to start %s' % (self.host))
                 i += 1
                 time.sleep(2)
 
             # If we could not connect within time limit
             if i == 30:
-                print(f'Could not connect to %s. Giving up {self.host}')
+                print('Could not connect to %s. Giving up %s' % (self.host))
                 sys.exit(1)
 
     #
