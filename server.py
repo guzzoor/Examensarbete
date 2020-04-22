@@ -152,7 +152,7 @@ class Server:
             while True:
                 s.listen()
                 self.conn, self.addr = s.accept()
-                print('Accepted connection from %s' % (self.adress))
+                print('Accepted connection from %s' % (self.addr))
                 self.conn.sendall(str.encode('connected'))
                 t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
                 self.clients.append(t)
@@ -160,5 +160,5 @@ class Server:
 
 
 if __name__ == '__main__':
-    server = Server('127.0.0.1', 65432)
+    server = Server('192.168.0.104', 65432)
     server.start_server()

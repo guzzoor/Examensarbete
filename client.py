@@ -11,7 +11,7 @@ except:
     import pickle
 
 
-HOST = '127.0.0.1'  # The server's hostname or IP address
+HOST = '88.129.80.84'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
 
 
