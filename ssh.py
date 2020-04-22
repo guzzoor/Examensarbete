@@ -25,7 +25,7 @@ class ssh:
         i = 1
 
         while True:
-            print(f'Trying to connect to {self.host}') 
+            print('Trying to connect to %s' % (self.host)) 
             try:
                 self.ssh = paramiko.SSHClient()
                 self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
