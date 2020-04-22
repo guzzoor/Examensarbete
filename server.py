@@ -63,32 +63,32 @@ class client_thread:
             msg = data.decode()
 
             if msg == 'login':
-                print(f'login requested by client {self.address}')
+                print('login requested by client %s' % (self.address))
                 self.handle_login()
 
             elif msg == 'quit':
-                print(f'Client {self.address} chose to terminate the connection.')
+                print('Client %s chose to terminate the connection.' % (self.address))
                 is_running = False
 
             elif msg == 'show':
-                print(f'show requested by client {self.address}')
+                print('show requested by client %s' % (self.address))
                 msg = pickle.dumps(self.hosts, -1)
                 self.connection.sendall(msg)
 
             elif msg == 'ssh':
-                print(f'ssh requested by client {self.address}')
+                print('ssh requested by client %s' % (self.address))
                 self.handle_ssh()
             
             elif msg == 'scp':
-                print(f'scp requested by client {self.address}')
+                print(f'scp requested by client %s' % (self.address))
                 self.handle_scp()
 
             elif msg == 'rdp':
-                print(f'rdp requested by client {self.address}')
+                print(f'rdp requested by client %s' % (self.address))
                 self.handle_rdp()
 
             elif msg == 'q_rdp':
-                print(f'quit rdp requested by client {self.address}')
+                print('quit rdp requested by client %s' % (self.address))
                 self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
 
     def handle_login(self):
@@ -101,9 +101,9 @@ class client_thread:
     ## Returns available ssh hosts as a string 
     #
     def print_msg_ssh_hosts(self, start_msg):
-        msg = f'{start_msg}\n'
+        msg = '%s\n' % (start_msg)
         for h, i in enumerate(self.ssh_hosts, start = 1):
-            msg = f'{msg}{h}. {i}\n'
+            msg = '%s %d. %s\n' % (msg, i, h)
         return msg
 
     #
@@ -148,11 +148,11 @@ class Server:
     def start_server(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.ip, self.port))
-            print(f'Server started running. Listening on port {self.port}')
+            print('Server started running. Listening on port %s' % (self.adress))
             while True:
                 s.listen()
                 self.conn, self.addr = s.accept()
-                print(f'Accepted connection from {self.addr}')
+                print('Accepted connection from %s' % (self.adress))
                 self.conn.sendall(str.encode('connected'))
                 t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
                 self.clients.append(t)
