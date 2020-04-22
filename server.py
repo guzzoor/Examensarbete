@@ -84,7 +84,7 @@ class client_thread:
                 self.handle_scp()
 
             elif msg == 'rdp':
-                print(f'rdp requested by client %s' % (self.address))
+                print('rdp requested by client %s' % (self.address))
                 self.handle_rdp()
 
             elif msg == 'q_rdp':
