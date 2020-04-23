@@ -4,7 +4,6 @@ import socket
 import os
 import subprocess
 import signal
-import json
 import sys
 import time
 
@@ -23,17 +22,20 @@ class client:
 
     is_connected = False
     is_login = False
-    s = None
+    is_running = False
+    socket = None
 
     work_stations = []
+
+    rdp_connections = []
 
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
 
     def connect(self):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-        self.s.connect((self.ip, self.port))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+        self.socket.connect((self.ip, self.port))
         self.is_connected = True
 
         return self.is_connected
@@ -55,18 +57,17 @@ class client:
             }
 
             msg = pickle.dumps(msg, -1) 
-            self.s.sendall(msg)
+            self.socket.sendall(msg)
 
-            if self.s.recv(1024).decode() == 'auth':
+            if self.socket.recv(1024).decode() == 'auth':
                 self.is_login = True
 
         return self.is_login
 
     def client_loop(self):
         if self.is_connected and self.is_login:
-            is_running = True
-            while is_running:
-                print('Options\nshow = show all available hosts\nrdp = setup rdp\nquit = quit the program\n')
+            while self.is_running:
+                print('Options\nshow = show all available hosts\nrdp = setup rdp\nq_rdp = terminate all rdp connections\nquit = quit the program\n')
                 message_to_server = input('Enter command: ')
                 print()
 
@@ -87,30 +88,35 @@ class client:
         choice = input('Chose one of the following available work stations: ')
         ws = int(choice) - 1
         choice = self.hosts[ws]
+        choice.is_used = True
+
         msg_to_server = {
             'command' : 'rdp',
             'choice' : choice
         }
 
         msg_to_server = pickle.dumps(msg_to_server, -1)
-        self.s.sendall(msg_to_server)
-        data = self.s.recv(1024)
+        self.socket.sendall(msg_to_server)
+        data = self.socket.recv(1024)
         print_data = data.decode()
-        self.p_rdp = subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
+        self.rdp_connections.append(subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid))
         
         # Will not have the time to create the tunnel else
         time.sleep(1)
-        os.system('open windows.rdp')
+        file_to_open = 'open {}.rdp'.format(self.hosts[ws].name)
+        os.system(file_to_open)
         print('You can now use rdp')
 
     def handle_quit_rdp(self):
         msg = {
             'command' : 'q_rdp'
             }
-        self.s.sendall(pickle.dumps(msg, -1))
-        data = self.s.recv(1024)
-        print_data = data.decode() 
-        os.killpg(os.getpgid(self.p_rdp.pid), signal.SIGTERM)  # Send the signal to all the process groups
+        self.socket.sendall(pickle.dumps(msg, -1))
+        data = self.socket.recv(1024)
+        print_data = data.decode()
+
+        for rdpc in self.rdp_connections:
+            os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
 
 
     def handle_show(self, msg_to_server):
@@ -127,8 +133,8 @@ class client:
             'command' : 'collect'
         }
 
-        self.s.sendall(pickle.dumps(msg, -1))
-        msg = pickle.loads(self.s.recv(4094))
+        self.socket.sendall(pickle.dumps(msg, -1))
+        msg = pickle.loads(self.socket.recv(4094))
         self.hosts = msg.get('hosts')
         self.loginfo = msg.get('loginfo')
 
@@ -144,16 +150,17 @@ class client:
         msg = {
             'command' : 'quit'
         }
-        self.s.sendall(pickle.dumps(msg), -1)
-        msg = self.s.recv(1024)
+        self.socket.sendall(pickle.dumps(msg, -1))
+        msg = self.socket.recv(1024)
         print(msg.decode())
-        is_running = False
+        self.is_running = False
         print('You terminated the connection.')
 
     def main(self):
         if(self.connect() and self.login()):
             print('You are now connected and logged in to the system.\n')
             self.collect_info()
+            self.is_running = True
             self.client_loop()
         else:
             print('Could not connect and login.')

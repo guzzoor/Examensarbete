@@ -4,7 +4,6 @@ import socket
 import threading
 import sqlite3
 from datetime import datetime
-import json
 import sys
 
 try:
@@ -17,13 +16,14 @@ from ssh import ssh
 # pi-ip = 88.129.80.84
 
 #
-##  
+## Could also just be saved as json or dictionary
 #
 class host:
 
-    def __init__(self, ip, ssh_port, rdp_port, name):
+    is_used = False
+
+    def __init__(self, ip, rdp_port, name):
         self.ip = ip
-        self.ssh_port = ssh_port
         self.rdp_port = rdp_port
         self.name = name
 
@@ -37,7 +37,10 @@ class host:
         pass
 
     def to_string(self):
-        return self.name + ': ' + self.ip 
+        cu = 'Is available to use'
+        if self.is_used:
+            cu = 'Is not available to use' 
+        return self.name + ': ' + self.ip + ' - ' + cu
 
 
 class client_thread:
@@ -109,13 +112,6 @@ class client_thread:
             msg = '{} {}. {}\n'.format(msg, i, h)
         return msg
 
-    #
-    ## ssh handler
-    #  Setup ssh connection
-    def handle_ssh(self):
-        print('Client requested ssh-service')
-        self.connection.sendall(str.encode('ssh -N -L 5905:192.168.0.104:22 -p 3022 clarastockhaus@88.129.80.84'))
-
     def handle_rdp(self, host):
         print('Client requested rdp-service')
         self.connection.sendall(str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip)))
@@ -128,8 +124,8 @@ class Server:
 
     clients = []
 
-    w = host('192.168.0.114', 22, 3389, 'Syntronic-Windows')
-    p = host('192.168.0.103', 22, 3399, 'Jonathans-Pi')
+    w = host('192.168.0.114', 3389, 'Syntronic-Windows')
+    p = host('192.168.0.104', 3389, 'Jonathans-Pi')
 
     hosts = [w, p]
 
