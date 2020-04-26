@@ -54,10 +54,6 @@ class client_thread:
         self.ssh = None
         self.conn = sqlite3.connect('test.db')
         print(str(datetime.now()))
-        self.conn.execute(
-            ''' INSERT INTO userlog (userInfo, loginTime) VALUES(?, ?)''',
-            (str(self.address), str(datetime.now()))
-        )
         self.conn.commit()
         self.running()
 
