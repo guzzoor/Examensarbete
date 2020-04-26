@@ -127,8 +127,14 @@ class client_thread:
                 h.is_used = True
         '''
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +1m -z 1 id_rsa.pub')
-        os.system('scp id_rsa-cert.pub jonathan@192.168.0.100:~/.ssh')
-        os.system('rm id_rsa-cert.pub')
+
+        fn = 'id_rsa-cert.pub'
+        s = os.path.getsize('id_rsa-cert.pub')
+        f = open(fn, 'rb')
+        l = f.read(s)
+
+        self.connection.sendall(l)
+
         self.connection.sendall(str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip)))
 
 
