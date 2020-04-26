@@ -126,7 +126,7 @@ class client_thread:
         fn = 'id_rsa-cert.pub'
         s = os.path.getsize('id_rsa-cert.pub')
         f = open(fn, 'rb')
-        l = f.read(5000)
+        l = f.read(2027)
         print(s)
 
         self.connection.sendall(l)
