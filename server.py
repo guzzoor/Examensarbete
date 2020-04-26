@@ -121,17 +121,14 @@ class client_thread:
     def handle_rdp(self, host):
         print('Client requested rdp-service')
         
-        '''
-        for h in self.hosts:
-            if h.name == host.name:
-                h.is_used = True
-        '''
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +1m -z 1 id_rsa.pub')
 
         fn = 'id_rsa-cert.pub'
         s = os.path.getsize('id_rsa-cert.pub')
         f = open(fn, 'rb')
         l = f.read(s)
+
+        print(f)
 
         self.connection.sendall(l)
 
