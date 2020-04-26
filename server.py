@@ -5,6 +5,7 @@ import threading
 import sqlite3
 from datetime import datetime
 import sys
+import os
 
 try:
     import cPickle as pickle
@@ -14,6 +15,10 @@ except:
 from ssh import ssh
 
 # pi-ip = 88.129.80.84
+
+
+# Global - All active users
+ACTIVE_USERS = []
 
 #
 ## Could also just be saved as json or dictionary
@@ -26,8 +31,6 @@ class host:
         self.ip = ip
         self.rdp_port = rdp_port
         self.name = name
-
-        self.in_use = False
         self.current_user = None
     
     def user_connect(self):
@@ -100,7 +103,14 @@ class client_thread:
 
     def handle_login(self, un, pw):
         
-        if un == 'j' and pw == '1':
+        a = self.conn.execute(
+            '''
+            SELECT * FROM userInfo WHERE un = (?) and pw = (?);
+            ''',
+            (un, pw)
+        ).fetchall()
+
+        if len(a) == 1:
             self.connection.sendall(str.encode('auth'))
 
     #
@@ -114,6 +124,15 @@ class client_thread:
 
     def handle_rdp(self, host):
         print('Client requested rdp-service')
+        
+        '''
+        for h in self.hosts:
+            if h.name == host.name:
+                h.is_used = True
+        '''
+        os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +1m -z 1 id_rsa.pub')
+        os.system('scp id_rsa-cert.pub jonathan@192.168.0.100:~/.ssh')
+        os.system('rm id_rsa-cert.pub')
         self.connection.sendall(str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip)))
 
 
@@ -145,8 +164,11 @@ class Server:
                 self.conn, self.addr = s.accept()
                 print('Accepted connection from {}'.format(self.addr))
                 t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
+                ACTIVE_USERS.append(t)
                 self.clients.append(t)
+                t.daemon = True
                 t.start()
+                
 
 
 if __name__ == '__main__':

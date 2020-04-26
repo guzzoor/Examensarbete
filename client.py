@@ -6,18 +6,22 @@ import subprocess
 import signal
 import sys
 import time
+import getpass
 
+from hashlib import md5
+
+#
+## Used to send packages over the internet
+#
 from server import host
 try:
     import cPickle as pickle
 except:
     import pickle
 
-
-#HOST = '88.129.80.84'  # The server's hostname or IP address
-#PORT = 65432        # The port used by the server
-
-
+#
+## 
+#
 class client:
 
     is_connected = False
@@ -26,7 +30,6 @@ class client:
     socket = None
 
     work_stations = []
-
     rdp_connections = []
 
     def __init__(self, ip, port):
@@ -46,14 +49,13 @@ class client:
             print('Enter your login info...')
 
             username = input('Enter username: ')
-            passwd = input('Enter password: ')
-
+            passwd = getpass.getpass('Enter password: ')
             print('')
 
             msg = {
                 'command' : 'login',
                 'un' : username,
-                'pw' : passwd
+                'pw' : md5(str.encode(passwd)).hexdigest()
             }
 
             msg = pickle.dumps(msg, -1) 
@@ -67,6 +69,10 @@ class client:
     def client_loop(self):
         if self.is_connected and self.is_login:
             while self.is_running:
+
+
+                self.collect_info()
+
                 print('Options\nshow = show all available hosts\nrdp = setup rdp\nq_rdp = terminate all rdp connections\nquit = quit the program\n')
                 message_to_server = input('Enter command: ')
                 print()
@@ -88,7 +94,6 @@ class client:
         choice = input('Chose one of the following available work stations: ')
         ws = int(choice) - 1
         choice = self.hosts[ws]
-        choice.is_used = True
 
         msg_to_server = {
             'command' : 'rdp',
@@ -104,7 +109,8 @@ class client:
         # Will not have the time to create the tunnel else
         time.sleep(1)
         file_to_open = 'open {}.rdp'.format(self.hosts[ws].name)
-        os.system(file_to_open)
+        proc = os.system(file_to_open)
+        print(proc)
         print('You can now use rdp')
 
     def handle_quit_rdp(self):
@@ -117,6 +123,8 @@ class client:
 
         for rdpc in self.rdp_connections:
             os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
+
+        self.rdp_connections = []
 
 
     def handle_show(self, msg_to_server):
@@ -144,8 +152,9 @@ class client:
     def update_info(self):
         pass
 
-
     def quit(self):
+
+        self.handle_quit_rdp()
 
         msg = {
             'command' : 'quit'
@@ -167,6 +176,9 @@ class client:
 
     
 if __name__ == '__main__':
+
+    # The script will vary depending on system
+    print(sys.platform)
 
     if len(sys.argv) == 3:
         c = client(sys.argv[1], int(sys.argv[2]))
