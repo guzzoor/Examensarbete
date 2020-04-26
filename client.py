@@ -102,7 +102,15 @@ class client:
 
         msg_to_server = pickle.dumps(msg_to_server, -1)
         self.socket.sendall(msg_to_server)
-        file = self.socket.recv(3000)
+
+        with open('id_rsa-cert.pub', 'wb') as f:
+            file = self.socket.recv(3000)
+            f.write(file)
+        f.close()
+
+        os.system('mv id_rsa-cert.pub ~/.ssh')
+
+        
         data = self.socket.recv(1024)
         print_data = data.decode()
         self.rdp_connections.append(subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid))
