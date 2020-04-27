@@ -12,7 +12,7 @@ import getpass
 # Need something stronger
 from hashlib import md5
 
-#
+##
 ## Used to send packages over the internet
 ## Serialize objects
 from server import host
@@ -21,9 +21,9 @@ try:
 except:
     import pickle
 
-#
+##
 ## 
-#
+##
 class client:
 
     is_connected = False
