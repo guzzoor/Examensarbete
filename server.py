@@ -7,22 +7,21 @@ from datetime import datetime
 import sys
 import os
 
+
+##
+## cPickle is faster
+##
 try:
     import cPickle as pickle
 except:
     import pickle
 
+# Not in use right now
 from ssh import ssh
 
-# pi-ip = 88.129.80.84
-
-
-# Global - All active users
-ACTIVE_USERS = []
-
-#
-## Could also just be saved as json or dictionary
-#
+##
+## Host/workstation that you can connect to. A user should see of another user is currently using it
+## and who that person is 
 class host:
 
     is_used = False
@@ -32,12 +31,6 @@ class host:
         self.rdp_port = rdp_port
         self.name = name
         self.current_user = None
-    
-    def user_connect(self):
-        pass
-
-    def user_disconnect(self):
-        pass
 
     def to_string(self):
         cu = 'Is available to use'
@@ -45,26 +38,28 @@ class host:
             cu = 'Is not available to use' 
         return self.name + ': ' + self.ip + ' - ' + cu
 
-
+## 
+## So that the server can handle several clients at the same time
+##
 class client_thread:
     def __init__(self, connection, address, hosts):
         self.address = address
         self.connection = connection
         self.hosts = hosts
         self.ssh = None
-        self.conn = sqlite3.connect('test.db')
+        self.db_conn = sqlite3.connect('server_db.db')
         print(str(datetime.now()))
-        self.conn.commit()
         self.running()
 
-    #
-    ## Thread main loop
-    #
+    
+    # Thread main loop
     def running(self):
         is_running = True
         while is_running:
 
+            print('Waiting for input...')
             data = self.connection.recv(4096)
+            print('Recieved input')
             msg = pickle.loads(data)
 
             command = msg.get('command')
@@ -77,6 +72,7 @@ class client_thread:
 
             elif command == 'quit':
                 print('Client {} chose to terminate the connection.'.format(self.address))
+                self.db_handler('Terminated session')
                 self.connection.sendall(str.encode('Server terminated your connection'))
                 is_running = False
 
@@ -84,7 +80,7 @@ class client_thread:
                 print('collect requested by client {}'.format(self.address))
                 msg = {
                     'hosts' : self.hosts,
-                    'loginfo' : 'Lorem Ipsum'
+                    'loginfo' : self.get_user_data_from_db()
                 }
 
                 self.connection.sendall(pickle.dumps(msg, -1))
@@ -95,23 +91,25 @@ class client_thread:
 
             elif command == 'q_rdp':
                 print('quit rdp requested by client {}'.format(self.address))
+                self.db_handler('RDP termination')
                 self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
 
     def handle_login(self, un, pw):
         
-        a = self.conn.execute(
+        a = self.db_conn.execute(
             '''
             SELECT * FROM userInfo WHERE un = (?) and pw = (?);
             ''',
             (un, pw)
         ).fetchall()
 
+        # Should be better ways to se if matched
         if len(a) == 1:
+            self.current_user = un
+            self.db_handler('login')
             self.connection.sendall(str.encode('auth'))
 
-    #
-    ## Returns available ssh hosts as a string 
-    #
+    # Returns available ssh hosts as a string 
     def print_msg_ssh_hosts(self, start_msg):
         msg = '{}\n'.format(start_msg)
         for h, i in enumerate(self.ssh_hosts, start = 1):
@@ -126,17 +124,39 @@ class client_thread:
         fn = 'id_rsa-cert.pub'
         s = os.path.getsize('id_rsa-cert.pub')
         f = open(fn, 'rb')
-        l = f.read(2027)
-        print(s)
+        l = f.read(s)
 
-        self.connection.sendall(l)
+        msg = {
+            'cert' : l,
+            'command' : str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip))
+        }
+        
+        self.db_handler('RDP-request to host: {}'.format(host.ip))
 
-        self.connection.sendall(str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip)))
+        self.connection.sendall(pickle.dumps(msg, -1))
+
+    def db_handler(self, action):
+        self.db_conn.execute(
+            '''
+            INSERT INTO userlog (username, useraction, loginTime)
+                        VALUES (?, ?, ?)
+            ''',
+            (self.current_user, action, datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+        )
+        self.db_conn.commit()
+
+    def get_user_data_from_db(self):
+        data = self.db_conn.execute(
+            '''
+            SELECT * FROM userlog WHERE username = (?)
+            ''',
+            (self.current_user,)
+        ).fetchall()        
+
+        return data
 
 
-#
-## Server class 
-#
+# Server class 
 class Server:
 
     clients = []
@@ -150,9 +170,8 @@ class Server:
     def __init__(self, ip, port):
         self.ip = ip
         self. port = port
-    #
-    ## Start server
-    #
+    
+    # Start server
     def start_server(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.ip, self.port))
@@ -162,11 +181,9 @@ class Server:
                 self.conn, self.addr = s.accept()
                 print('Accepted connection from {}'.format(self.addr))
                 t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
-                ACTIVE_USERS.append(t)
                 self.clients.append(t)
                 t.daemon = True
                 t.start()
-                
 
 
 if __name__ == '__main__':

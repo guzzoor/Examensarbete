@@ -8,11 +8,13 @@ import sys
 import time
 import getpass
 
+# For password encryption, just for prototyping
+# Need something stronger
 from hashlib import md5
 
 #
 ## Used to send packages over the internet
-#
+## Serialize objects
 from server import host
 try:
     import cPickle as pickle
@@ -68,29 +70,41 @@ class client:
 
     def client_loop(self):
         if self.is_connected and self.is_login:
-            while self.is_running:
+            
+            try:
+                while self.is_running:
 
+                    self.collect_info()
 
-                self.collect_info()
+                    print('Options\nshow = show all available hosts\nrdp = setup rdp\nq_rdp = terminate all rdp connections\nquit = quit the program\nlog = show user log\n')
+                    command = input('Enter command: ')
+                    print()
 
-                print('Options\nshow = show all available hosts\nrdp = setup rdp\nq_rdp = terminate all rdp connections\nquit = quit the program\n')
-                message_to_server = input('Enter command: ')
-                print()
+                    if command == 'show':
+                        self.handle_show()
 
-                if message_to_server == 'show':
-                    self.handle_show(message_to_server)
+                    if command == 'log':
+                        self.handle_log()
 
-                if message_to_server == 'rdp':
-                   self.handle_rdp() 
-                
-                if message_to_server == 'q_rdp':
+                    if command == 'rdp':
+                        self.handle_rdp() 
+
+                    if command == 'q_rdp':
+                        self.handle_quit_rdp()
+
+                    if command == 'quit':
+                        self.quit()
+            except:
+                print('Exception handling...')
+
+            finally:
+                if self.is_running == True:
                     self.handle_quit_rdp()
-
-                if message_to_server == 'quit':
-                    self.quit()
+                print('Finally handling')                
+  
     
     def handle_rdp(self):
-        self.handle_show('show')
+        self.handle_show()
         choice = input('Chose one of the following available work stations: ')
         ws = int(choice) - 1
         choice = self.hosts[ws]
@@ -103,15 +117,17 @@ class client:
         msg_to_server = pickle.dumps(msg_to_server, -1)
         self.socket.sendall(msg_to_server)
 
+        # Should send the message size as meta data, not hard coded
+        msg = pickle.loads(self.socket.recv(4000))
+
         with open('id_rsa-cert.pub', 'wb') as f:
-            file = self.socket.recv(3000)
+            file = msg.get('cert')
             f.write(file)
         f.close()
 
         os.system('mv id_rsa-cert.pub ~/.ssh')
 
-        
-        data = self.socket.recv(1024)
+        data = msg.get('command')
         print_data = data.decode()
         self.rdp_connections.append(subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid))
         
@@ -136,7 +152,13 @@ class client:
         self.rdp_connections = []
 
 
-    def handle_show(self, msg_to_server):
+    def handle_log(self):
+        for l in self.loginfo:
+            print(l[2] + ' : ' + l[3])
+        print()
+
+
+    def handle_show(self):
         for i, h in enumerate(self.hosts, start = 1):
             print('{}. {}'.format(i, h.to_string()))
         print()
