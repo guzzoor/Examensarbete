@@ -22,13 +22,12 @@ except:
 ## and who that person is 
 class host:
 
-    is_used = False
-
     def __init__(self, ip, rdp_port, name):
         self.ip = ip
         self.rdp_port = rdp_port
         self.name = name
         self.current_user = None
+        self.is_used = False
 
     def to_string(self):
         cu = 'Is available to use'
@@ -52,8 +51,8 @@ class client_thread:
     
     # Thread main loop
     def running(self):
-        is_running = True
-        while is_running:
+        self.is_running = True
+        while self.is_running:
 
             print('Waiting for input...')
             data = self.connection.recv(4096)
@@ -106,6 +105,9 @@ class client_thread:
             self.current_user = un
             #self.db_handler('login')
             self.connection.sendall(str.encode('auth'))
+        else:
+            pass
+            #self.is_running = False
 
     # Returns available ssh hosts as a string 
     def print_msg_ssh_hosts(self, start_msg):
@@ -117,6 +119,11 @@ class client_thread:
     def handle_rdp(self, host):
         print('Client requested rdp-service')
         
+        for h in self.hosts:
+            if h.to_string() == host.to_string():
+                print('EEEYOOO')
+                h.is_used = True
+
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +5m -z 1 id_rsa.pub')
 
         fn = 'id_rsa-cert.pub'
@@ -161,8 +168,13 @@ class Server:
 
     w = host('192.168.0.114', 3389, 'Syntronic-Windows')
     p = host('192.168.0.104', 3389, 'Jonathans-Pi')
+    dummy1 = host('111.111.111', 3389, 'Dummy 1')
+    dummy2 = host('222.222.222', 3389, 'Dummy 2')
+    dummy3 = host('333.333.333', 3389, 'Dummy 3')
+    dummy4 = host('444.444.444', 3389, 'Dummy 4')
 
-    hosts = [w, p]
+
+    hosts = [w, p, dummy1, dummy2, dummy3, dummy4]
 
 
     def __init__(self, ip, port):

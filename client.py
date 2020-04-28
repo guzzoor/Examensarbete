@@ -8,6 +8,9 @@ import sys
 import time
 import getpass
 
+
+from gui import *
+
 # For password encryption, just for prototyping
 # Need something stronger
 from hashlib import md5
@@ -68,45 +71,8 @@ class client:
 
         return self.is_login
 
-    def client_loop(self):
-        if self.is_connected and self.is_login:
-            
-            try:
-                while self.is_running:
-
-                    self.collect_info()
-
-                    print('Options\nshow = show all available hosts\nrdp = setup rdp\nq_rdp = terminate all rdp connections\nquit = quit the program\nlog = show user log\n')
-                    command = input('Enter command: ')
-                    print()
-
-                    if command == 'show':
-                        self.handle_show()
-
-                    if command == 'log':
-                        self.handle_log()
-
-                    if command == 'rdp':
-                        self.handle_rdp() 
-
-                    if command == 'q_rdp':
-                        self.handle_quit_rdp()
-
-                    if command == 'quit':
-                        self.quit()
-            except:
-                print('Exception handling...')
-
-            finally:
-                if self.is_running == True:
-                    self.handle_quit_rdp()
-                print('Finally handling')                
-  
-    
-    def handle_rdp(self):
-        self.handle_show()
-        choice = input('Chose one of the following available work stations: ')
-        ws = int(choice) - 1
+    def handle_rdp(self, ws):
+        
         choice = self.hosts[ws]
 
         msg_to_server = {
@@ -139,17 +105,20 @@ class client:
         print('You can now use rdp')
 
     def handle_quit_rdp(self):
-        msg = {
-            'command' : 'q_rdp'
-            }
-        self.socket.sendall(pickle.dumps(msg, -1))
-        data = self.socket.recv(1024)
-        print_data = data.decode()
 
-        for rdpc in self.rdp_connections:
-            os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
+        if len(self.rdp_connections) > 0:
 
-        self.rdp_connections = []
+            msg = {
+                'command' : 'q_rdp'
+                }
+            self.socket.sendall(pickle.dumps(msg, -1))
+            data = self.socket.recv(1024)
+            print_data = data.decode()
+
+            for rdpc in self.rdp_connections:
+                os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
+
+            self.rdp_connections = []
 
 
     def handle_log(self):
@@ -173,7 +142,7 @@ class client:
         }
 
         self.socket.sendall(pickle.dumps(msg, -1))
-        msg = pickle.loads(self.socket.recv(4094))
+        msg = pickle.loads(self.socket.recv(8000))
         self.hosts = msg.get('hosts')
         self.loginfo = msg.get('loginfo')
 
@@ -196,15 +165,7 @@ class client:
         self.is_running = False
         print('You terminated the connection.')
 
-    def main(self):
-        if(self.connect() and self.login()):
-            print('You are now connected and logged in to the system.\n')
-            self.collect_info()
-            self.is_running = True
-            self.client_loop()
-        else:
-            print('Could not connect and login.')
-
+ 
     
 if __name__ == '__main__':
 
@@ -213,7 +174,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 3:
         c = client(sys.argv[1], int(sys.argv[2]))
-        c.main()
+        
     else:
         print('Type ip and port')
 

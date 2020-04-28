@@ -1,93 +1,112 @@
 from tkinter import *
+from client import *
 
 HEIGHT = 724
 WIDTH = 1920
 
 
+class custom_button(Button):
 
-class my_button(Button):
+    def __init__(self, r, t, f, option, col):
+        super(custom_button, self).__init__(r, text=t, font = f, bg=col)
+        self.option = option
+        self.color = 'blue'
 
-    color = 'white'
-    ip = ""
-
-    def print_(self):
-        print(self.ip)    
-
-userinfo = {
-    'name' : 'Jonathan',
-    'address' : '13.37'
-}
-log = [['jonathan', 'login', '27/4-2020'], ['jonathan', 'rdp', '30/4-2020']]
-
-hosts = ['192.168.0.104', '192.168.0.114', '192.168.0.113']
-
-def connect(btn):
-    print(btn['text'])
+    def click(self):
+        print(self.option)
+        return self.option
 
 
-def loginfo(log):
-    h = 0.1
-    for r in log:
-        l = Label(root, bg = 'blue', text = r[1] + ' : ' + r[2])
-        l.place(relx=0.1, rely = h, relheight=0.1, relwidth=0.3)
-        h = h + 0.1
+class GUI:
 
-def create_hosts_new(hosts):
-    ypos = 0.1
-    for h in hosts:
-        btn = Button(root, text=h, font=40)
-        btn["command"] = lambda btn=btn: connect(btn)
-        btn.place(relx=0.6, rely = ypos, relheight=0.1, relwidth=0.3)
-      
-        ypos = ypos + 0.1
+    root = None
+    log_frame = None
 
-def create_hosts():
-    
-    button1 = Button(root, text="192.168.0.114", font=40, command=lambda: connect(button1['text']))
-    button1.place(relx=0.6, rely = 0.1, relheight=0.1, relwidth=0.3)
+    def __init__(self):
+        self.client = client('127.0.0.1', 1234)
+        self.client.connect()
+        self.client.login()
 
-    button2 = Button(root, text="192.168.0.104", font=40, command=lambda: connect(button2['text']))
-    button2.place(relx=0.6, rely = 0.2,relheight=0.1, relwidth=0.3)
+    def click(self):
+        print('clicked')
 
-    button3 = Button(root, text="192.168.0.100", font=40, command=lambda: connect(button3['text']))
-    button3.place(relx=0.6, rely = 0.3,relheight=0.1, relwidth=0.3)
-
-    button4 = Button(root, text="Dummy host", font=40, command=lambda: connect(button4['text']))
-    button4.place(relx=0.6, rely = 0.4,relheight=0.1, relwidth=0.3)
-
-    button5 = Button(root, text="Dummy host", font=40, command=lambda: connect(button5['text']))
-    button5.place(relx=0.6, rely = 0.5,relheight=0.1, relwidth=0.3)
-    
-    button6 = Button(root, text="Dummy host", font=40, command=lambda: connect(button6['text']))
-    button6.place(relx=0.6, rely = 0.6,relheight=0.1, relwidth=0.3)
-
-    button7 = Button(root, text="Dummy host", font=40, command=lambda: connect(button7['text']))
-    button7.place(relx=0.6, rely = 0.7,relheight=0.1, relwidth=0.3)
+    def connect(self, btn):
+        self.client.handle_quit_rdp()
+        self.client.handle_rdp(btn.option)
+        self.client.collect_info()
+        hosts = self.client.hosts
+        gui.draw_graphics_pic(hosts, self.background_image)
 
 
-def draw_graphics_pic(log, host, background_image):
+    def print_log(self):
+        log = self.client.loginfo
+        h = 0
+        for r in log:
+            l = Label(self.log_frame,  text = r[1] + ' : ' + r[2])
+            l.place(relx=0.1, rely = h, relheight=0.05, relwidth=0.8)
+            h = h + 0.05
 
-    canvas = Canvas(root, height=HEIGHT, width=WIDTH)
-    canvas.pack()
-
-    background_label = Label(root, image=background_image)
-    background_label.place(relwidth=1, relheight=1)
-
-
-    create_hosts_new(host)
-    loginfo(log)
-
-    #userinfo = Label(root, bg='green', text=userinfo.get('name') + ' : ' + userinfo.get('address'))
-    #userinfo.place(relx = 0.2, rely= 0, relwidth=0.6, relheight = 0.1)
+    def create_hosts_new(self, hosts):
+        ypos = 0.1
+        option = 0
+        for h in hosts:
+            btn = custom_button(self.host_frame, h.to_string(), 40, option, 'green')
+            btn["command"] = lambda btn=btn: self.connect(btn)
+            btn.place(relx=0.1, rely = ypos, relheight=0.1, relwidth=0.8)
+            ypos = ypos + 0.1
+            option = option + 1
 
 
+    def draw_graphics_pic(self, host, background_image):
 
+        canvas = Canvas(self.root, height=HEIGHT, width=WIDTH)
+        canvas.pack()
+
+        background_label = Label(self.root, image=background_image)
+        background_label.place(relwidth=1, relheight=1)
+
+        self.log_frame = Frame(self.root, bd=10)
+        self.log_frame.place(relx=0.05, rely=0.1, relwidth=0.4, relheight=0.8)
+
+
+        self.host_frame = Frame(self.root, bd=10)
+        self.host_frame.place(relx=0.55, rely=0.1, relwidth=0.4, relheight=0.8)
+
+        self.create_hosts_new(host)
+        self.print_log()
+
+
+        quit_button = Button(self.root, text='Quit', command=self.click)
+        quit_button.place(relx = 0.4, rely = 0.95, relwidth=0.2)
+
+        #userinfo = Label(root, bg='green', text=userinfo.get('name') + ' : ' + userinfo.get('address'))
+        #userinfo.place(relx = 0.2, rely= 0, relwidth=0.6, relheight = 0.1)
+
+
+    def main(self):
+
+        try:
+            self.client.collect_info()
+            hosts = self.client.hosts
+            self.root = Tk()
+            self.background_image = PhotoImage(file='Syntronictest.png')
+            self.draw_graphics_pic(hosts, self.background_image)
+            self.root.update()
+            self.root.mainloop()
+        except:
+            print(Exception)
+            print('Exception')
+        
+        finally:
+            print('Finally')
+            # Clean up
+            self.client.handle_quit_rdp()
+        
 
 # Graphics
 
 if __name__ == "__main__":
-    root = Tk()
-    background_image = PhotoImage(file='Syntronictest.png')
-    draw_graphics_pic(log, hosts, background_image)
-    root.mainloop()
+
+    gui = GUI()
+    gui.main()
 
