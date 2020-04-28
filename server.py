@@ -70,7 +70,7 @@ class client_thread:
 
             elif command == 'quit':
                 print('Client {} chose to terminate the connection.'.format(self.address))
-                self.db_handler('Terminated session')
+                #self.db_handler('Terminated session')
                 self.connection.sendall(str.encode('Server terminated your connection'))
                 is_running = False
 
@@ -89,7 +89,7 @@ class client_thread:
 
             elif command == 'q_rdp':
                 print('quit rdp requested by client {}'.format(self.address))
-                self.db_handler('RDP termination')
+                #self.db_handler('RDP termination')
                 self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
 
     def handle_login(self, un, pw):
@@ -104,7 +104,7 @@ class client_thread:
         # Should be better ways to se if matched
         if len(a) == 1:
             self.current_user = un
-            self.db_handler('login')
+            #self.db_handler('login')
             self.connection.sendall(str.encode('auth'))
 
     # Returns available ssh hosts as a string 
@@ -129,7 +129,7 @@ class client_thread:
             'command' : str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip))
         }
         
-        self.db_handler('RDP-request to host: {}'.format(host.ip))
+        #self.db_handler('RDP-request to host: {}'.format(host.ip))
 
         self.connection.sendall(pickle.dumps(msg, -1))
 
