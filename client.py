@@ -33,6 +33,7 @@ class client:
     is_login = False
     is_running = False
     socket = None
+    username = ""
 
     work_stations = []
     rdp_connections = []
@@ -53,13 +54,13 @@ class client:
             
             print('Enter your login info...')
 
-            username = input('Enter username: ')
+            self.username = input('Enter username: ')
             passwd = getpass.getpass('Enter password: ')
             print('')
 
             msg = {
                 'command' : 'login',
-                'un' : username,
+                'un' : self.username,
                 'pw' : md5(str.encode(passwd)).hexdigest()
             }
 
@@ -119,7 +120,23 @@ class client:
                 os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
 
             self.rdp_connections = []
+    def handle_quit_rdp_one(self, host):
+    
+        if len(self.rdp_connections) > 0:
 
+            msg = {
+                'command' : 'q_rdp',
+                'host' : host
+                }
+
+            self.socket.sendall(pickle.dumps(msg, -1))
+            data = self.socket.recv(1024)
+            print_data = data.decode()
+
+            for rdpc in self.rdp_connections:
+                os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
+
+            self.rdp_connections = []
 
     def handle_log(self):
         for l in self.loginfo:

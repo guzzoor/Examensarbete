@@ -57,6 +57,7 @@ class client_thread:
             print('Waiting for input...')
             data = self.connection.recv(4096)
             print('Recieved input')
+          
             msg = pickle.loads(data)
 
             command = msg.get('command')
@@ -88,8 +89,17 @@ class client_thread:
 
             elif command == 'q_rdp':
                 print('quit rdp requested by client {}'.format(self.address))
+                for h in self.hosts:
+                    h.is_used = False
                 #self.db_handler('RDP termination')
                 self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
+            
+            elif command == 'q_rdp_one':
+                print('quit rdp_one requested by client {}'.format(self.address))
+                for h in self.hosts:
+                    if h.to_string() == msg.get('host').to_string():
+                        h.is_used = False
+
 
     def handle_login(self, un, pw):
         
@@ -121,7 +131,6 @@ class client_thread:
         
         for h in self.hosts:
             if h.to_string() == host.to_string():
-                print('EEEYOOO')
                 h.is_used = True
 
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +5m -z 1 id_rsa.pub')
