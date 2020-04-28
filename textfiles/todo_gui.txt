@@ -1,0 +1,15 @@
+
+This is what the GUI-prototype should contain.
+
+1. A very basic login window. This will be the start window of the program. 
+
+If login succeded the program will move on to 2., if not it will alert some message.
+
+2. Main window. Should display:
+    - some info about the current user. 
+    - The userlog
+    - All the hosts that you can connect to. Could be a list of buttons where each button
+      is a host. If you press the button you will connect
+    - Logout
+    - Quit button to terminate the program
+

@@ -127,8 +127,8 @@ class client:
 
         os.system('mv id_rsa-cert.pub ~/.ssh')
 
-        data = msg.get('command')
-        print_data = data.decode()
+        print_data = msg.get('command')
+        
         self.rdp_connections.append(subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid))
         
         # Will not have the time to create the tunnel else

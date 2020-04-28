@@ -16,8 +16,6 @@ try:
 except:
     import pickle
 
-# Not in use right now
-from ssh import ssh
 
 ##
 ## Host/workstation that you can connect to. A user should see of another user is currently using it
@@ -119,7 +117,7 @@ class client_thread:
     def handle_rdp(self, host):
         print('Client requested rdp-service')
         
-        os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +1m -z 1 id_rsa.pub')
+        os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +5m -z 1 id_rsa.pub')
 
         fn = 'id_rsa-cert.pub'
         s = os.path.getsize('id_rsa-cert.pub')
