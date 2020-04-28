@@ -1,14 +1,19 @@
+
 from tkinter import *
+
+from tkmacosx import Button as tkButton
+
+
 from client import *
 
 HEIGHT = 724
-WIDTH = 1920
+WIDTH = 1000
 
 
-class custom_button(Button):
+class custom_button(tkButton):
 
     def __init__(self, r, t, f, option, col):
-        super(custom_button, self).__init__(r, text=t, font = f, bg=col)
+        super(custom_button, self).__init__(r, text=t, font = f, bg=col, borderless=1)
         self.option = option
         self.color = 'blue'
 
@@ -34,7 +39,7 @@ class GUI:
     def refresh(self):
         self.client.collect_info()
         hosts = self.client.hosts
-        gui.draw_graphics_pic(hosts, self.background_image)
+        gui.draw_graphics_pic(self.background_image)
 
     def connect(self, btn):
         if self.current_rdp_host != None:
@@ -43,27 +48,37 @@ class GUI:
         self.client.handle_rdp(btn.option)
         self.refresh()
 
+    def print_user_info(self):
+        userinfo = Label(self.root, text='Signed in as user : ' + self.client.username)
+        userinfo.place(relx = 0.8, rely= 0.05, relwidth=0.15, relheight = 0.1)
+
 
     def print_log(self):
         log = self.client.loginfo
-        h = 0
+        label = Label(self.log_frame, text='USER LOG', bg='lightblue')
+        label.place(relx=0, rely=0, relwidth=1, relheight=0.1)
+        ypos = 0.12
         for r in log:
-            l = Label(self.log_frame,  text = r[1] + ' : ' + r[2])
-            l.place(relx=0.1, rely = h, relheight=0.05, relwidth=0.8)
-            h = h + 0.05
+            l = Label(self.log_frame,  text = r[2] + ' : ' + r[3])
+            l.place(relx=0.1, rely = ypos, relheight=0.05, relwidth=0.8)
+            ypos = ypos + 0.05
 
-    def create_hosts_new(self, hosts):
-        ypos = 0.1
+    def print_hosts(self):
+
+        label = Label(self.host_frame, text='ALL HOSTS', bg='lightblue')
+        label.place(relx=0, rely=0, relwidth=1, relheight=0.1)
+
+        ypos = 0.12
         option = 0
-        for h in hosts:
-            btn = custom_button(self.host_frame, h.to_string(), 40, option, 'green')
+        for h in self.hosts:
+            btn = custom_button(self.host_frame, h.to_string(), 40, option, 'lightgreen')
             btn["command"] = lambda btn=btn: self.connect(btn)
-            btn.place(relx=0.1, rely = ypos, relheight=0.1, relwidth=0.8)
+            btn.place(relx=0, rely = ypos, relheight=0.1, relwidth=1)
             ypos = ypos + 0.1
             option = option + 1
 
 
-    def draw_graphics_pic(self, host, background_image):
+    def draw_graphics_pic(self, background_image):
 
         canvas = Canvas(self.root, height=HEIGHT, width=WIDTH)
         canvas.pack()
@@ -72,32 +87,30 @@ class GUI:
         background_label.place(relwidth=1, relheight=1)
 
         self.log_frame = Frame(self.root, bd=10)
-        self.log_frame.place(relx=0.05, rely=0.1, relwidth=0.4, relheight=0.8)
+        self.log_frame.place(relx=0.05, rely=0.2, relwidth=0.4, relheight=0.7)
 
 
         self.host_frame = Frame(self.root, bd=10)
-        self.host_frame.place(relx=0.55, rely=0.1, relwidth=0.4, relheight=0.8)
+        self.host_frame.place(relx=0.55, rely=0.2, relwidth=0.4, relheight=0.7)
 
-        self.create_hosts_new(host)
+        self.print_hosts()
         self.print_log()
+        self.print_user_info()
 
+        refresh_button = tkButton(self.host_frame, text='Refresh', command=self.refresh, bg='lightblue')
+        refresh_button.place(relx = 0.3, rely = 0.9, relwidth = 0.4, relheight=0.1)
 
-        refresh_button = Button(self.host_frame, text='Refresh', command=self.refresh)
-        refresh_button.place(relx = 0.6, rely = 0.8, relwidth = 0.3, relheight=0.05)
-
-        quit_button = Button(self.root, text='Quit', command=self.click)
+        quit_button = tkButton(self.root, background='white', text='Quit', command=self.click)
         quit_button.place(relx = 0.4, rely = 0.95, relwidth=0.2)
 
-        userinfo = Label(self.root, text='Signed in as user : ' + self.client.username)
-        userinfo.place(relx = 0.2, rely= 0, relwidth=0.6, relheight = 0.1)
 
     def main(self):
 
         self.client.collect_info()
-        hosts = self.client.hosts
+        self.hosts = self.client.hosts
         self.root = Tk()
-        self.background_image = PhotoImage(file='Syntronictest.png')
-        self.draw_graphics_pic(hosts, self.background_image)
+        self.background_image = PhotoImage(file='Syntronictest1.png')
+        self.draw_graphics_pic(self.background_image)
         self.root.update()
         self.root.mainloop()
 

@@ -101,8 +101,7 @@ class client:
         # Will not have the time to create the tunnel else
         time.sleep(1)
         file_to_open = 'open {}.rdp'.format(self.hosts[ws].name)
-        proc = os.system(file_to_open)
-        print(proc)
+        os.system(file_to_open)
         print('You can now use rdp')
 
     def handle_quit_rdp(self):
@@ -120,6 +119,7 @@ class client:
                 os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
 
             self.rdp_connections = []
+    
     def handle_quit_rdp_one(self, host):
     
         if len(self.rdp_connections) > 0:
@@ -162,12 +162,6 @@ class client:
         msg = pickle.loads(self.socket.recv(8000))
         self.hosts = msg.get('hosts')
         self.loginfo = msg.get('loginfo')
-
-    #
-    ## Everyone something is updated the server will send a message to all client 
-    ## so that they can update their info
-    def update_info(self):
-        pass
 
     def quit(self):
 
