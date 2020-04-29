@@ -101,7 +101,9 @@ class client:
         # Will not have the time to create the tunnel else
         time.sleep(1)
         file_to_open = 'open {}.rdp'.format(self.hosts[ws].name)
-        os.system(file_to_open)
+        subprocess.Popen(file_to_open, shell = True)
+ 
+        #os.system(file_to_open)
         print('You can now use rdp')
 
     def handle_quit_rdp(self):

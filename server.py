@@ -32,8 +32,9 @@ class host:
     def to_string(self):
         cu = 'Is available to use'
         if self.is_used:
-            cu = 'Is not available to use' 
+            cu = 'Is not available to use\nIs used by {}'.format(self.current_user)
         return self.name + ': ' + self.ip + ' - ' + cu
+
 
 ## 
 ## So that the server can handle several clients at the same time
@@ -43,9 +44,7 @@ class client_thread:
         self.address = address
         self.connection = connection
         self.hosts = hosts
-        self.ssh = None
         self.db_conn = sqlite3.connect('server_db.db')
-        print(str(datetime.now()))
         self.running()
 
     
@@ -132,6 +131,7 @@ class client_thread:
         for h in self.hosts:
             if h.to_string() == host.to_string():
                 h.is_used = True
+                h.current_user = self.address
 
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +5m -z 1 id_rsa.pub')
 
@@ -177,13 +177,13 @@ class Server:
 
     w = host('192.168.0.114', 3389, 'Syntronic-Windows')
     p = host('192.168.0.104', 3389, 'Jonathans-Pi')
+    m = host('192.168.0.113', 3389, 'Claras-Mac')
     dummy1 = host('111.111.111', 3389, 'Dummy 1')
     dummy2 = host('222.222.222', 3389, 'Dummy 2')
     dummy3 = host('333.333.333', 3389, 'Dummy 3')
-    dummy4 = host('444.444.444', 3389, 'Dummy 4')
 
 
-    hosts = [w, p, dummy1, dummy2, dummy3, dummy4]
+    hosts = [w, p, m, dummy1, dummy2, dummy3]
 
 
     def __init__(self, ip, port):

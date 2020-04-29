@@ -12,17 +12,18 @@ WIDTH = 1000
 
 class custom_button(tkButton):
 
-    def __init__(self, r, t, f, option, col):
+    def __init__(self, r, t, f, option, col, available):
         super(custom_button, self).__init__(r, text=t, font = f, bg=col, borderless=1)
         self.option = option
         self.color = 'blue'
+        self.available = available
 
     def click(self):
         print(self.option)
         return self.option
 
 
-class GUI:
+class GUI(object):
 
     root = None
     log_frame = None
@@ -32,20 +33,29 @@ class GUI:
         self.client = client('127.0.0.1', 1234)
         self.client.connect()
         self.client.login()
+        self.client.collect_info()
+        
+        self.hosts = self.client.hosts
+        self.root = Tk()
+        self.background_image = PhotoImage(file='Syntronictest1.png')        
+
+        self.start()
+
 
     def click(self):
         print('clicked')
 
     def refresh(self):
         self.client.collect_info()
-        hosts = self.client.hosts
-        gui.draw_graphics_pic(self.background_image)
+        self.hosts = self.client.hosts
+
+        self.draw_graphics_pic(self.background_image)
+        self.root.after(5000, self.refresh)
 
     def connect(self, btn):
-        if self.current_rdp_host != None:
-            self.client.handle_quit_rdp_one(self.current_rdp_host)
         self.current_rdp_host = btn.option
-        self.client.handle_rdp(btn.option)
+        if btn.available:
+            self.client.handle_rdp(btn.option)
         self.refresh()
 
     def print_user_info(self):
@@ -71,7 +81,12 @@ class GUI:
         ypos = 0.12
         option = 0
         for h in self.hosts:
-            btn = custom_button(self.host_frame, h.to_string(), 40, option, 'lightgreen')
+            col = 'lightgreen'
+            if h.is_used:
+                btn = custom_button(self.host_frame, h.to_string(), 40, option, 'red', False)   
+            else:
+                btn = custom_button(self.host_frame, h.to_string(), 40, option, 'lightgreen', True)   
+
             btn["command"] = lambda btn=btn: self.connect(btn)
             btn.place(relx=0, rely = ypos, relheight=0.1, relwidth=1)
             ypos = ypos + 0.1
@@ -100,19 +115,17 @@ class GUI:
         refresh_button = tkButton(self.host_frame, text='Refresh', command=self.refresh, bg='lightblue')
         refresh_button.place(relx = 0.3, rely = 0.9, relwidth = 0.4, relheight=0.1)
 
-        quit_button = tkButton(self.root, background='white', text='Quit', command=self.click)
-        quit_button.place(relx = 0.4, rely = 0.95, relwidth=0.2)
+        quit_button = tkButton(self.root, background='lightblue', text='Quit', command=self.click)
+        quit_button.place(relx = 0.4, rely = 0.92, relwidth=0.2, relheight=0.05)
 
 
-    def main(self):
+    def start(self):
 
-        self.client.collect_info()
-        self.hosts = self.client.hosts
-        self.root = Tk()
-        self.background_image = PhotoImage(file='Syntronictest1.png')
-        self.draw_graphics_pic(self.background_image)
-        self.root.update()
+
+        #self.draw_graphics_pic(self.background_image)
+        self.refresh()
         self.root.mainloop()
+        self.client.handle_quit_rdp()
 
 
         '''
@@ -138,5 +151,5 @@ class GUI:
 if __name__ == "__main__":
 
     gui = GUI()
-    gui.main()
+
 
