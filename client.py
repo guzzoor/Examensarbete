@@ -36,7 +36,7 @@ class client:
     username = ""
 
     work_stations = []
-    rdp_connections = []
+    current_rdp_connection = None
 
     def __init__(self, ip, port):
         self.ip = ip
@@ -72,13 +72,13 @@ class client:
 
         return self.is_login
 
-    def handle_rdp(self, ws):
-        
-        choice = self.hosts[ws]
+    def handle_rdp(self, host, prev_host):
 
+        #self.handle_quit_rdp(prev_host)     
+   
         msg_to_server = {
             'command' : 'rdp',
-            'choice' : choice
+            'choice' : host,
         }
 
         msg_to_server = pickle.dumps(msg_to_server, -1)
@@ -93,52 +93,27 @@ class client:
         f.close()
 
         os.system('mv id_rsa-cert.pub ~/.ssh')
-
         print_data = msg.get('command')
         
-        self.rdp_connections.append(subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid))
+        self.current_rdp_connection = subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
         
         # Will not have the time to create the tunnel else
         time.sleep(1)
-        file_to_open = 'open {}.rdp'.format(self.hosts[ws].name)
+        file_to_open = 'open {}.rdp'.format(host.name)
         subprocess.Popen(file_to_open, shell = True)
  
         #os.system(file_to_open)
         print('You can now use rdp')
 
-    def handle_quit_rdp(self):
+    def handle_quit_rdp(self, prev_host):
 
-        if len(self.rdp_connections) > 0:
-
-            msg = {
-                'command' : 'q_rdp'
-                }
-            self.socket.sendall(pickle.dumps(msg, -1))
-            data = self.socket.recv(1024)
-            print_data = data.decode()
-
-            for rdpc in self.rdp_connections:
-                os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
-
-            self.rdp_connections = []
-    
-    def handle_quit_rdp_one(self, host):
-    
-        if len(self.rdp_connections) > 0:
-
+        if self.current_rdp_connection != None:
             msg = {
                 'command' : 'q_rdp',
-                'host' : host
-                }
-
+                'host' : prev_host
+            }
             self.socket.sendall(pickle.dumps(msg, -1))
-            data = self.socket.recv(1024)
-            print_data = data.decode()
-
-            for rdpc in self.rdp_connections:
-                os.killpg(os.getpgid(rdpc.pid), signal.SIGTERM)  # Send the signal to all the process groups
-
-            self.rdp_connections = []
+            os.killpg(os.getpgid(self.current_rdp_connection.pid), signal.SIGTERM)  # Send the signal to all the process groups
 
     def handle_log(self):
         for l in self.loginfo:

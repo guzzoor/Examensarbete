@@ -35,6 +35,9 @@ class host:
             cu = 'Is not available to use\nIs used by {}'.format(self.current_user)
         return self.name + ': ' + self.ip + ' - ' + cu
 
+    def equals(self, host):
+        return self.name == host.name
+
 
 ## 
 ## So that the server can handle several clients at the same time
@@ -69,7 +72,7 @@ class client_thread:
 
             elif command == 'quit':
                 print('Client {} chose to terminate the connection.'.format(self.address))
-                #self.db_handler('Terminated session')
+                self.db_handler('Terminated session')
                 self.connection.sendall(str.encode('Server terminated your connection'))
                 is_running = False
 
@@ -84,14 +87,16 @@ class client_thread:
 
             elif command == 'rdp':
                 print('rdp requested by client {}'.format(self.address))
-                self.handle_rdp(msg.get('choice'))
+                self.handle_rdp(msg.get('choice'), msg.get('prev_host'))
 
             elif command == 'q_rdp':
                 print('quit rdp requested by client {}'.format(self.address))
                 for h in self.hosts:
-                    h.is_used = False
-                #self.db_handler('RDP termination')
-                self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
+                    if h.equals(msg.get('host')):
+                        h.is_used = False
+                        h.current_user = None
+                self.db_handler('RDP termination')
+                #self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
             
             elif command == 'q_rdp_one':
                 print('quit rdp_one requested by client {}'.format(self.address))
@@ -112,7 +117,7 @@ class client_thread:
         # Should be better ways to se if matched
         if len(a) == 1:
             self.current_user = un
-            #self.db_handler('login')
+            self.db_handler('login')
             self.connection.sendall(str.encode('auth'))
         else:
             pass
@@ -125,13 +130,16 @@ class client_thread:
             msg = '{} {}. {}\n'.format(msg, i, h)
         return msg
 
-    def handle_rdp(self, host):
+    def handle_rdp(self, host, prev_host):
         print('Client requested rdp-service')
-        
         for h in self.hosts:
-            if h.to_string() == host.to_string():
+            if h.equals(host):
                 h.is_used = True
                 h.current_user = self.address
+            
+            if prev_host != None and h.equals(prev_host):
+                h.is_used = False
+                h.current_user = None
 
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +5m -z 1 id_rsa.pub')
 
@@ -145,7 +153,7 @@ class client_thread:
             'command' : str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip))
         }
         
-        #self.db_handler('RDP-request to host: {}'.format(host.ip))
+        self.db_handler('RDP-request to host: {}'.format(host.ip))
 
         self.connection.sendall(pickle.dumps(msg, -1))
 
