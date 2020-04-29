@@ -22,9 +22,9 @@ except:
 ## and who that person is 
 class host:
 
-    def __init__(self, ip, rdp_port, name):
+    def __init__(self, ip, port, name):
         self.ip = ip
-        self.rdp_port = rdp_port
+        self.port = port
         self.name = name
         self.current_user = None
         self.is_used = False
@@ -32,7 +32,7 @@ class host:
     def to_string(self):
         cu = 'Is available to use'
         if self.is_used:
-            cu = 'Is not available to use\nIs used by {}'.format(self.current_user)
+            cu = 'Is not available to use\nIs used by user: {}'.format(self.current_user)
         return self.name + ': ' + self.ip + ' - ' + cu
 
     def equals(self, host):
@@ -45,6 +45,7 @@ class host:
 class client_thread:
     def __init__(self, connection, address, hosts):
         self.address = address
+        self.current_user = ""
         self.connection = connection
         self.hosts = hosts
         self.db_conn = sqlite3.connect('server_db.db')
@@ -95,15 +96,9 @@ class client_thread:
                     if h.equals(msg.get('host')):
                         h.is_used = False
                         h.current_user = None
-                self.db_handler('RDP termination')
+                self.db_handler('RDP termination for host {}'.format(msg.get('host').name))
                 #self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
             
-            elif command == 'q_rdp_one':
-                print('quit rdp_one requested by client {}'.format(self.address))
-                for h in self.hosts:
-                    if h.to_string() == msg.get('host').to_string():
-                        h.is_used = False
-
 
     def handle_login(self, un, pw):
         
@@ -135,7 +130,7 @@ class client_thread:
         for h in self.hosts:
             if h.equals(host):
                 h.is_used = True
-                h.current_user = self.address
+                h.current_user = self.current_user
             
             if prev_host != None and h.equals(prev_host):
                 h.is_used = False
@@ -150,7 +145,7 @@ class client_thread:
 
         msg = {
             'cert' : l,
-            'command' : str.encode('ssh -N -L 5901:{}:3389 -p 2222 pi@88.129.80.84'.format(host.ip))
+            'command' : str.encode('ssh -N -L {}:{}:3389 -p 2222 pi@88.129.80.84'.format(host.port, host.ip))
         }
         
         self.db_handler('RDP-request to host: {}'.format(host.ip))
@@ -183,9 +178,9 @@ class Server:
 
     clients = []
 
-    w = host('192.168.0.114', 3389, 'Syntronic-Windows')
-    p = host('192.168.0.104', 3389, 'Jonathans-Pi')
-    m = host('192.168.0.113', 3389, 'Claras-Mac')
+    w = host('192.168.0.114', 5901, 'Syntronic-Windows')
+    p = host('192.168.0.104', 5902, 'Jonathans-Pi')
+    m = host('192.168.0.113', 5903, 'Claras-Mac')
     dummy1 = host('111.111.111', 3389, 'Dummy 1')
     dummy2 = host('222.222.222', 3389, 'Dummy 2')
     dummy3 = host('333.333.333', 3389, 'Dummy 3')

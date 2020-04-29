@@ -1,8 +1,7 @@
 
 from tkinter import *
-from tkinter import ttk
-from tkmacosx import Button as tkButton
 
+from tkmacosx import Button as tkButton
 
 from client import *
 
@@ -11,24 +10,41 @@ WIDTH = 1000
 
 
 class custom_button(tkButton):
-
+    
     def __init__(self, r, t, f, col, host):
         super(custom_button, self).__init__(r, text=t, font = f, bg=col, borderless=1)
         self.host = host
-    
 
-    def click(self):
-        print(self.option)
-        return self.option
+class GUI_APP(Tk):
+    def __init__(self, *args, **kwargs):
+        Tk.__init__(self, *args, **kwargs)
+        container = Frame(self)
+
+        self.frames = {}
+        for F in (LoginPage, MainPage):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self)
+            self.frames[page_name] = frame
 
 
-class GUI(object):
+        self.show_frame("LoginPage")
+
+    def show_frame(self, page_name):
+        '''Show a frame for the given page name'''
+        frame = self.frames[page_name]
+        frame.tkraise()
+
+
+class LoginPage(Frame):
+     pass   
+
+class MainPage(Frame):
 
     root = None
     log_frame = None
     current_rdp_host = None
 
-    def __init__(self):
+    def __init__(self, parent, controller):
         self.client = client('127.0.0.1', 1234)
         self.client.connect()
         self.client.login()
@@ -67,6 +83,7 @@ class GUI(object):
 
     def print_log(self):
         log = self.client.loginfo
+        log.reverse()
         label = Label(self.log_frame, text='USER LOG', bg='lightblue')
         label.place(relx=0, rely=0, relwidth=1, relheight=0.1)
         ypos = 0.12
@@ -96,8 +113,6 @@ class GUI(object):
 
 
     def draw_graphics_pic(self, background_image):
-
-
 
         background_label = Label(self.root, image=background_image)
         background_label.place(relwidth=1, relheight=1)
@@ -152,6 +167,6 @@ class GUI(object):
 
 if __name__ == "__main__":
 
-    gui = GUI()
+    gui = MainPage()
 
 
