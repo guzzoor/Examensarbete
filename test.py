@@ -8,4 +8,4 @@ from hashlib import md5
 #os.system('open windows.rdp')
 #os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +1m -z 1 id_rsa.pub')
 
-print(md5(str.encode('jonathan')).hexdigest())
+print(md5(str.encode('test')).hexdigest())

@@ -15,7 +15,7 @@ from gui import *
 # Need something stronger
 from hashlib import md5
 
-#
+##
 ## Used to send packages over the internet
 ## Serialize objects
 from server import host
@@ -24,9 +24,9 @@ try:
 except:
     import pickle
 
-#
+##
 ## 
-#
+##
 class client:
 
     is_connected = False
@@ -49,19 +49,15 @@ class client:
 
         return self.is_connected
 
-    def login(self):
+    def login(self, un, pw):
         if self.is_connected:
-            
-            print('Enter your login info...')
-
-            self.username = input('Enter username: ')
-            passwd = getpass.getpass('Enter password: ')
-            print('')
+                   
+            self.username = un
 
             msg = {
                 'command' : 'login',
                 'un' : self.username,
-                'pw' : md5(str.encode(passwd)).hexdigest()
+                'pw' : md5(str.encode(pw)).hexdigest()
             }
 
             msg = pickle.dumps(msg, -1) 
@@ -69,12 +65,15 @@ class client:
 
             if self.socket.recv(1024).decode() == 'auth':
                 self.is_login = True
+            else:
+                self.is_login = False
+                print('Wrong user input - Client')
 
         return self.is_login
 
     def handle_rdp(self, host, prev_host):
 
-        #self.handle_quit_rdp(prev_host)     
+        self.handle_quit_rdp(prev_host)     
    
         msg_to_server = {
             'command' : 'rdp',
@@ -126,6 +125,20 @@ class client:
             print('{}. {}'.format(i, h.to_string()))
         print()
 
+
+    def start_up(self):
+        
+        msg = {
+            'command' : 'start_up'
+        }
+
+        self.socket.sendall(pickle.dumps(msg, -1))
+        msg = pickle.loads(self.socket.recv(8000))
+        self.hosts = msg.get('hosts')
+        self.loginfo = msg.get('loginfo')
+
+        print(self.loginfo)
+
     #
     ## On start this will collect all relevant info. Like workstations in the system and the current user log.
     #
@@ -138,7 +151,6 @@ class client:
         self.socket.sendall(pickle.dumps(msg, -1))
         msg = pickle.loads(self.socket.recv(8000))
         self.hosts = msg.get('hosts')
-        self.loginfo = msg.get('loginfo')
 
     def quit(self):
 

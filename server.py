@@ -77,11 +77,19 @@ class client_thread:
                 self.connection.sendall(str.encode('Server terminated your connection'))
                 is_running = False
 
-            elif command == 'collect':
+            elif command == 'start_up':
                 print('collect requested by client {}'.format(self.address))
                 msg = {
                     'hosts' : self.hosts,
                     'loginfo' : self.get_user_data_from_db()
+                }
+
+                self.connection.sendall(pickle.dumps(msg, -1))
+
+            elif command == 'collect':
+                print('collect requested by client {}'.format(self.address))
+                msg = {
+                    'hosts' : self.hosts
                 }
 
                 self.connection.sendall(pickle.dumps(msg, -1))
@@ -115,8 +123,8 @@ class client_thread:
             self.db_handler('login')
             self.connection.sendall(str.encode('auth'))
         else:
-            pass
-            #self.is_running = False
+            print('not auth - Server')
+            self.connection.sendall(str.encode('n_auth'))
 
     # Returns available ssh hosts as a string 
     def print_msg_ssh_hosts(self, start_msg):
