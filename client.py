@@ -6,7 +6,6 @@ import subprocess
 import signal
 import sys
 import time
-import getpass
 
 
 from gui import *
@@ -15,7 +14,7 @@ from gui import *
 # Need something stronger
 from hashlib import md5
 
-##
+
 ## Used to send packages over the internet
 ## Serialize objects
 from server import host
@@ -35,18 +34,34 @@ class client:
     socket = None
     username = ""
 
-    work_stations = []
-    current_rdp_connection = None
+    current_rdp_connection = []
 
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
 
+    def logout(self):
+
+        hosts = []
+
+        for p in self.current_rdp_connection:
+            os.killpg(os.getpgid(p.get('process').pid), signal.SIGTERM)  # Send the signal to all the process groups
+            hosts.append(p.get('host'))
+            
+        msg = {
+            'command' : 'logout',
+            'hosts' : hosts
+        }
+
+        self.socket.sendall(pickle.dumps(msg, -1))
+
+        self.current_rdp_connection = []
+
+
     def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
         self.socket.connect((self.ip, self.port))
         self.is_connected = True
-
         return self.is_connected
 
     def login(self, un, pw):
@@ -71,13 +86,11 @@ class client:
 
         return self.is_login
 
-    def handle_rdp(self, host, prev_host):
-
-        self.handle_quit_rdp(prev_host)     
+    def handle_rdp(self, host):
    
         msg_to_server = {
             'command' : 'rdp',
-            'choice' : host,
+            'choice' : host
         }
 
         msg_to_server = pickle.dumps(msg_to_server, -1)
@@ -94,7 +107,8 @@ class client:
         os.system('mv id_rsa-cert.pub ~/.ssh')
         print_data = msg.get('command')
         
-        self.current_rdp_connection = subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid)
+        self.current_rdp_connection.append({'process' : subprocess.Popen(print_data, stdout=subprocess.PIPE, shell = True, preexec_fn=os.setsid),
+                                            'host' : host})
         
         # Will not have the time to create the tunnel else
         time.sleep(1)
@@ -104,27 +118,19 @@ class client:
         #os.system(file_to_open)
         print('You can now use rdp')
 
-    def handle_quit_rdp(self, prev_host):
+    def handle_quit_rdp(self, host):
 
-        if self.current_rdp_connection != None:
-            msg = {
-                'command' : 'q_rdp',
-                'host' : prev_host
-            }
-            self.socket.sendall(pickle.dumps(msg, -1))
-            os.killpg(os.getpgid(self.current_rdp_connection.pid), signal.SIGTERM)  # Send the signal to all the process groups
+        msg = {
+            'command' : 'q_rdp',
+            'host' : host
+        }
+        self.socket.sendall(pickle.dumps(msg, -1))
 
-    def handle_log(self):
-        for l in self.loginfo:
-            print(l[2] + ' : ' + l[3])
-        print()
-
-
-    def handle_show(self):
-        for i, h in enumerate(self.hosts, start = 1):
-            print('{}. {}'.format(i, h.to_string()))
-        print()
-
+        for i, p in enumerate(self.current_rdp_connection):
+            if p.get('host').equals(host):
+                os.killpg(os.getpgid(p.get('process').pid), signal.SIGTERM)  # Send the signal to all the process groups
+                self.current_rdp_connection.pop(i)
+                break
 
     def start_up(self):
         
@@ -137,7 +143,6 @@ class client:
         self.hosts = msg.get('hosts')
         self.loginfo = msg.get('loginfo')
 
-        print(self.loginfo)
 
     #
     ## On start this will collect all relevant info. Like workstations in the system and the current user log.

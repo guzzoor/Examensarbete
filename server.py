@@ -7,7 +7,6 @@ from datetime import datetime
 import sys
 import os
 
-
 ##
 ## cPickle is faster
 ##
@@ -15,7 +14,6 @@ try:
     import cPickle as pickle
 except:
     import pickle
-
 
 ##
 ## Host/workstation that you can connect to. A user should see of another user is currently using it
@@ -37,7 +35,6 @@ class host:
 
     def equals(self, host):
         return self.name == host.name
-
 
 ## 
 ## So that the server can handle several clients at the same time
@@ -64,8 +61,6 @@ class client_thread:
             msg = pickle.loads(data)
 
             command = msg.get('command')
-
-            print(command)
 
             if command == 'login':
                 print('login requested by client {}'.format(self.address))
@@ -96,18 +91,19 @@ class client_thread:
 
             elif command == 'rdp':
                 print('rdp requested by client {}'.format(self.address))
-                self.handle_rdp(msg.get('choice'), msg.get('prev_host'))
+                self.handle_rdp(msg.get('choice'))
 
             elif command == 'q_rdp':
                 print('quit rdp requested by client {}'.format(self.address))
-                for h in self.hosts:
-                    if h.equals(msg.get('host')):
-                        h.is_used = False
-                        h.current_user = None
-                self.db_handler('RDP termination for host {}'.format(msg.get('host').name))
-                #self.connection.sendall(str.encode('The server has now terminated your connection to rdp.'))
-            
+                self.handle_quit_rdp(msg.get('host'))
 
+            elif command == 'logout':
+                print('lgout requested by client {}'.format(self.address))
+
+                for h  in msg.get('hosts'):
+                    self.handle_quit_rdp(h)
+
+            
     def handle_login(self, un, pw):
         
         a = self.db_conn.execute(
@@ -133,17 +129,14 @@ class client_thread:
             msg = '{} {}. {}\n'.format(msg, i, h)
         return msg
 
-    def handle_rdp(self, host, prev_host):
+    def handle_rdp(self, host):
         print('Client requested rdp-service')
         for h in self.hosts:
-            if h.equals(host):
-                h.is_used = True
-                h.current_user = self.current_user
+            if h.get('host').equals(host):
+                h.get('host').is_used = True
+                h.get('host').current_user = self.current_user
+                h['current_user'] = self.current_user
             
-            if prev_host != None and h.equals(prev_host):
-                h.is_used = False
-                h.current_user = None
-
         os.system('ssh-keygen -s server_ca -I jonathan -n pi -V +5m -z 1 id_rsa.pub')
 
         fn = 'id_rsa-cert.pub'
@@ -159,6 +152,15 @@ class client_thread:
         self.db_handler('RDP-request to host: {}'.format(host.ip))
 
         self.connection.sendall(pickle.dumps(msg, -1))
+
+    def handle_quit_rdp(self, host):
+        for h in self.hosts:
+            h = h.get('host')
+            if h.equals(host):
+                h.is_used = False
+                h.current_user = None
+                self.db_handler('RDP termination for host {}'.format(host.name))
+
 
     def db_handler(self, action):
         self.db_conn.execute(
@@ -194,7 +196,32 @@ class Server:
     dummy3 = host('333.333.333', 3389, 'Dummy 3')
 
 
-    hosts = [w, p, m, dummy1, dummy2, dummy3]
+    hosts = [
+        {
+            'host' : w,
+            'current_user' : None
+        },
+        {
+            'host' : p,
+            'current_user' : None
+        },
+        {
+            'host' : m,
+            'current_user' : None
+        },
+            {
+            'host' : dummy1,
+            'current_user' : None
+        },
+            {
+            'host' : dummy2,
+            'current_user' : None
+        },
+        {
+            'host' : dummy3,
+            'current_user' : None
+        },
+    ]
 
 
     def __init__(self, ip, port):
