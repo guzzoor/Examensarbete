@@ -59,9 +59,13 @@ class client:
 
 
     def connect(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-        self.socket.connect((self.ip, self.port))
-        self.is_connected = True
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+            self.socket.connect((self.ip, self.port))
+            self.is_connected = True
+        except BrokenPipeError:
+            self.is_connected = False
+            print('Server seems to be down...')
         return self.is_connected
 
     def login(self, un, pw):
@@ -76,7 +80,11 @@ class client:
             }
 
             msg = pickle.dumps(msg, -1) 
-            self.socket.sendall(msg)
+
+            try:
+                self.socket.sendall(msg)
+            except BrokenPipeError:
+                print('Server seems to be down...')
 
             if self.socket.recv(1024).decode() == 'auth':
                 self.is_login = True
@@ -112,8 +120,11 @@ class client:
         
         # Will not have the time to create the tunnel else
         time.sleep(1)
+        
         file_to_open = 'open {}.rdp'.format(host.name)
         subprocess.Popen(file_to_open, shell = True)
+
+
  
         #os.system(file_to_open)
         print('You can now use rdp')
@@ -128,8 +139,11 @@ class client:
 
         for i, p in enumerate(self.current_rdp_connection):
             if p.get('host').equals(host):
-                os.killpg(os.getpgid(p.get('process').pid), signal.SIGTERM)  # Send the signal to all the process groups
-                self.current_rdp_connection.pop(i)
+                try:
+                    os.killpg(os.getpgid(p.get('process').pid), signal.SIGTERM)  # Send the signal to all the process groups
+                    self.current_rdp_connection.pop(i)
+                except ProcessLookupError:
+                    print('Can not kill that process')
                 break
 
     def start_up(self):

@@ -7,13 +7,14 @@ from tkmacosx import Button as tkButton
 
 from client import *
 
-import time
 import os
 
 
 HEIGHT = 800
 WIDTH = 1000
 
+
+# Might be a bit uncessesary
 class custom_button(tkButton):
     def __init__(self, r, t, f, col, host):
         super(custom_button, self).__init__(r, text=t, font = f, bg=col, borderless=1)
@@ -287,7 +288,15 @@ class ConnectionPage(tk.Frame):
 # ----------------------------- Start ----------------------------
 
 if __name__ == "__main__":
-
-    app = GuiApp('1' , 1)
-    app.mainloop()
+    try: 
+        app = GuiApp('1' , 1)
+        app.mainloop()
+    except Exception as e:
+        print(e)
+        print('Exception happened')
+    finally:
+        print('Finally happened')
+        app.client.logout()
+        # Should be some form of clean up function
+        
 

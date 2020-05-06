@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 
 import socket
 import threading
@@ -46,14 +46,19 @@ class client_thread:
         self.connection = connection
         self.hosts = hosts
         self.db_conn = sqlite3.connect('server_db.db')
-        self.running()
 
+        try:
+            self.running()
+        except Exception as e:
+            print('Exception happened')
+        finally:
+            print('Closing connections to database...')
+            self.db_conn.close()
     
     # Thread main loop
     def running(self):
         self.is_running = True
         while self.is_running:
-
             print('Waiting for input...')
             data = self.connection.recv(4096)
             print('Recieved input')
@@ -233,15 +238,20 @@ class Server:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((self.ip, self.port))
             print('Server started running. Listening on port %s' % (self.port))
-            while True:
-                s.listen()
-                self.conn, self.addr = s.accept()
-                print('Accepted connection from {}'.format(self.addr))
-                t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
-                self.clients.append(t)
-                t.daemon = True
-                t.start()
+            try:
+                while True:
+                    s.listen()
+                    self.conn, self.addr = s.accept()
+                    print('Accepted connection from {}'.format(self.addr))
+                    t = threading.Thread(target = client_thread, args = (self.conn, self.addr, self.hosts),)
+                    self.clients.append(t)
+                    t.daemon = True
+                    t.start()
+            except Exception as e:
+                print('Exception occured ' + e)
 
+            finally:
+                print('Cleaning up...')
 
 if __name__ == '__main__':
     if len(sys.argv) == 3:
